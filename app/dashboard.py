@@ -3,16 +3,30 @@ import pandas as pd
 import joblib
 import matplotlib.pyplot as plt
 
-# Cargar data
+# ==============================
+# 📂 CARGA DE DATOS (FIX DEPLOY)
+# ==============================
+
 df = pd.read_csv("data/raw/deliveries.csv")
 
-
-# Cargar modelo y features
 model = joblib.load("models/eta_model.pkl")
 features = joblib.load("models/features.pkl")
+
 st.set_page_config(page_title="OpsVision AI Dashboard", layout="wide")
 
+# ==============================
+# 🧠 HEADER (STORYTELLING)
+# ==============================
+
 st.title("🚀 OpsVision AI - Dashboard Operativo")
+
+st.markdown("""
+## 📦 Delivery Operations Intelligence
+
+Este dashboard analiza entregas para identificar retrasos, entender sus causas y predecir tiempos de entrega (ETA).
+""")
+
+st.markdown("---")
 
 # ==============================
 # 📊 KPIs
@@ -28,29 +42,39 @@ col1.metric("⏱️ Tiempo Promedio", f"{avg_time:.2f} min")
 col2.metric("📈 Tiempo Máximo", f"{max_time} min")
 col3.metric("📉 Tiempo Mínimo", f"{min_time} min")
 
+st.caption("El tiempo promedio refleja la eficiencia general de las entregas")
+
 st.markdown("---")
 
 # ==============================
-# 📊 TRÁFICO
+# 🚗 TRÁFICO
 # ==============================
 
 st.subheader("🚗 Impacto del tráfico")
+
 traffic_analysis = df.groupby("traffic")["delivery_time"].mean()
 
 fig, ax = plt.subplots()
 traffic_analysis.plot(kind="bar", ax=ax)
+ax.set_title("Tiempo promedio por tráfico")
 st.pyplot(fig)
+
+st.markdown("---")
 
 # ==============================
 # 🌧️ CLIMA
 # ==============================
 
 st.subheader("🌧️ Impacto del clima")
+
 weather_analysis = df.groupby("weather")["delivery_time"].mean()
 
 fig, ax = plt.subplots()
 weather_analysis.plot(kind="bar", ax=ax)
+ax.set_title("Tiempo promedio por clima")
 st.pyplot(fig)
+
+st.markdown("---")
 
 # ==============================
 # ⚠️ ALERTAS
@@ -58,12 +82,17 @@ st.pyplot(fig)
 
 st.subheader("⚠️ Entregas con riesgo")
 
+st.warning("Pedidos con alto riesgo pueden afectar la satisfacción del cliente y generar cancelaciones")
+
 high_risk = df[df["delivery_time"] > 40]
+
 st.write(f"Pedidos con alto riesgo: {len(high_risk)}")
 st.dataframe(high_risk)
 
+st.markdown("---")
+
 # ==============================
-# 🔮 PREDICCIÓN (FIX IMPORTANTE)
+# 🔮 PREDICCIÓN
 # ==============================
 
 st.subheader("🔮 Simulación de entrega")
@@ -81,7 +110,7 @@ input_data = pd.DataFrame([{
 # Encoding
 input_data = pd.get_dummies(input_data)
 
-# 🔥 FIX PRO: alinear columnas
+# 🔥 FIX PRO: alinear columnas con entrenamiento
 for col in features:
     if col not in input_data.columns:
         input_data[col] = 0
@@ -98,16 +127,21 @@ if st.button("Predecir ETA"):
     else:
         st.success("✅ Entrega en tiempo esperado")
 
+    # 🔥 WOW MOMENT
+    if traffic == "high" and weather != "clear":
+        st.error("🚨 Escenario crítico: alta probabilidad de retraso")
+
+st.markdown("---")
+
 # ==============================
 # 🧠 INSIGHTS
 # ==============================
 
-st.markdown("---")
 st.subheader("🧠 Insights clave")
 
 st.write("""
 - El tráfico alto es el principal factor de retraso  
 - El clima adverso incrementa los tiempos  
 - La distancia tiene menor impacto relativo  
-- Alto riesgo cuando se combinan tráfico alto + mal clima  
+- Los peores escenarios ocurren cuando hay tráfico alto + mal clima  
 """)
