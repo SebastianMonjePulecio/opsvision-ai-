@@ -4,7 +4,7 @@ import joblib
 import matplotlib.pyplot as plt
 
 # ==============================
-# 📂 CARGA DE DATOS (FIX DEPLOY)
+# 📂 CARGA DE DATOS
 # ==============================
 
 df = pd.read_csv("data/raw/deliveries.csv")
@@ -15,7 +15,7 @@ features = joblib.load("models/features.pkl")
 st.set_page_config(page_title="OpsVision AI Dashboard", layout="wide")
 
 # ==============================
-# 🧠 HEADER (STORYTELLING)
+# 🧠 HEADER
 # ==============================
 
 st.title("🚀 OpsVision AI - Dashboard Operativo")
@@ -29,12 +29,31 @@ Este dashboard analiza entregas para identificar retrasos, entender sus causas y
 st.markdown("---")
 
 # ==============================
+# 🎛️ FILTROS (NIVEL EMPRESA)
+# ==============================
+
+st.sidebar.header("Filtros")
+
+traffic_filter = st.sidebar.multiselect(
+    "Tráfico", df["traffic"].unique(), default=df["traffic"].unique()
+)
+
+weather_filter = st.sidebar.multiselect(
+    "Clima", df["weather"].unique(), default=df["weather"].unique()
+)
+
+filtered_df = df[
+    (df["traffic"].isin(traffic_filter)) &
+    (df["weather"].isin(weather_filter))
+]
+
+# ==============================
 # 📊 KPIs
 # ==============================
 
-avg_time = df["delivery_time"].mean()
-max_time = df["delivery_time"].max()
-min_time = df["delivery_time"].min()
+avg_time = filtered_df["delivery_time"].mean()
+max_time = filtered_df["delivery_time"].max()
+min_time = filtered_df["delivery_time"].min()
 
 col1, col2, col3 = st.columns(3)
 
@@ -52,7 +71,7 @@ st.markdown("---")
 
 st.subheader("🚗 Impacto del tráfico")
 
-traffic_analysis = df.groupby("traffic")["delivery_time"].mean()
+traffic_analysis = filtered_df.groupby("traffic")["delivery_time"].mean()
 
 fig, ax = plt.subplots()
 traffic_analysis.plot(kind="bar", ax=ax)
@@ -67,7 +86,7 @@ st.markdown("---")
 
 st.subheader("🌧️ Impacto del clima")
 
-weather_analysis = df.groupby("weather")["delivery_time"].mean()
+weather_analysis = filtered_df.groupby("weather")["delivery_time"].mean()
 
 fig, ax = plt.subplots()
 weather_analysis.plot(kind="bar", ax=ax)
@@ -84,9 +103,15 @@ st.subheader("⚠️ Entregas con riesgo")
 
 st.warning("Pedidos con alto riesgo pueden afectar la satisfacción del cliente y generar cancelaciones")
 
-high_risk = df[df["delivery_time"] > 40]
+high_risk = filtered_df[filtered_df["delivery_time"] > 40]
 
-st.write(f"Pedidos con alto riesgo: {len(high_risk)}")
+risk_percentage = (len(high_risk) / len(filtered_df)) * 100 if len(filtered_df) > 0 else 0
+
+col_risk1, col_risk2 = st.columns(2)
+
+col_risk1.metric("Pedidos en riesgo", len(high_risk))
+col_risk2.metric("⚠️ % en riesgo", f"{risk_percentage:.1f}%")
+
 st.dataframe(high_risk)
 
 st.markdown("---")
@@ -107,10 +132,9 @@ input_data = pd.DataFrame([{
     "weather": weather
 }])
 
-# Encoding
 input_data = pd.get_dummies(input_data)
 
-# 🔥 FIX PRO: alinear columnas con entrenamiento
+# 🔥 FIX PRO
 for col in features:
     if col not in input_data.columns:
         input_data[col] = 0
@@ -144,4 +168,27 @@ st.write("""
 - El clima adverso incrementa los tiempos  
 - La distancia tiene menor impacto relativo  
 - Los peores escenarios ocurren cuando hay tráfico alto + mal clima  
+""")
+
+# ==============================
+# 📌 RECOMENDACIONES (NIVEL EMPRESA)
+# ==============================
+
+st.subheader("📌 Recomendaciones")
+
+st.write("""
+- Aumentar repartidores en zonas con tráfico alto  
+- Ajustar tiempos estimados en días de lluvia  
+- Priorizar pedidos críticos para evitar cancelaciones  
+""")
+
+# ==============================
+# 💼 CONCLUSIÓN
+# ==============================
+
+st.subheader("💼 Conclusión")
+
+st.write("""
+El principal factor que afecta los tiempos de entrega es el tráfico, seguido por el clima.
+Optimizar estos factores puede mejorar significativamente la eficiencia operativa.
 """)
