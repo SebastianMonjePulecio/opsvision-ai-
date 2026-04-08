@@ -1,38 +1,70 @@
 import streamlit as st
 import pandas as pd
 import joblib
-import matplotlib.pyplot as plt
+import plotly.express as px
 
 # ==============================
-# 📂 CARGA DE DATOS
+# 🎨 CONFIG UI
+# ==============================
+
+st.set_page_config(
+    page_title="OpsVision AI",
+    page_icon="🚀",
+    layout="wide"
+)
+
+# ==============================
+# 💅 CSS (SaaS LOOK)
+# ==============================
+
+st.markdown("""
+<style>
+body {
+    background-color: #0e1117;
+}
+
+.metric-card {
+    background-color: #1c1f26;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0px 4px 20px rgba(0,0,0,0.3);
+    text-align: center;
+}
+
+h1, h2, h3 {
+    color: #ffffff;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+# ==============================
+# 📂 DATA
 # ==============================
 
 df = pd.read_csv("data/raw/deliveries.csv")
-
 model = joblib.load("models/eta_model.pkl")
 features = joblib.load("models/features.pkl")
-
-st.set_page_config(page_title="OpsVision AI Dashboard", layout="wide")
 
 # ==============================
 # 🧠 HEADER
 # ==============================
 
-st.title("🚀 OpsVision AI - Dashboard Operativo")
+st.title("🚀 OpsVision AI")
 
 st.markdown("""
-## 📦 Delivery Operations Intelligence
+### Delivery Operations Intelligence
 
-Este dashboard analiza entregas para identificar retrasos, entender sus causas y predecir tiempos de entrega (ETA).
+Monitorea, analiza y predice tiempos de entrega en tiempo real.
 """)
 
 st.markdown("---")
 
 # ==============================
-# 🎛️ FILTROS (NIVEL EMPRESA)
+# 🎛️ SIDEBAR
 # ==============================
 
-st.sidebar.header("Filtros")
+st.sidebar.title("⚙️ Filtros")
 
 traffic_filter = st.sidebar.multiselect(
     "Tráfico", df["traffic"].unique(), default=df["traffic"].unique()
@@ -48,7 +80,7 @@ filtered_df = df[
 ]
 
 # ==============================
-# 📊 KPIs
+# 📊 KPIs (SaaS STYLE)
 # ==============================
 
 avg_time = filtered_df["delivery_time"].mean()
@@ -58,12 +90,25 @@ min_time = filtered_df["delivery_time"].min()
 col1, col2, col3 = st.columns(3)
 
 col1.metric("⏱️ Tiempo Promedio", f"{avg_time:.2f} min")
-col2.metric("📈 Tiempo Máximo", f"{max_time} min")
-col3.metric("📉 Tiempo Mínimo", f"{min_time} min")
-
-st.caption("El tiempo promedio refleja la eficiencia general de las entregas")
+col2.metric("📈 Máximo", f"{max_time} min")
+col3.metric("📉 Mínimo", f"{min_time} min")
 
 st.markdown("---")
+
+# ==============================
+# 📊 HISTOGRAMA
+# ==============================
+
+st.subheader("📊 Distribución de entregas")
+
+fig = px.histogram(
+    filtered_df,
+    x="delivery_time",
+    nbins=20,
+    title="Distribución de tiempos",
+)
+
+st.plotly_chart(fig, use_container_width=True)
 
 # ==============================
 # 🚗 TRÁFICO
@@ -71,14 +116,17 @@ st.markdown("---")
 
 st.subheader("🚗 Impacto del tráfico")
 
-traffic_analysis = filtered_df.groupby("traffic")["delivery_time"].mean()
+traffic_analysis = filtered_df.groupby("traffic")["delivery_time"].mean().reset_index()
 
-fig, ax = plt.subplots()
-traffic_analysis.plot(kind="bar", ax=ax)
-ax.set_title("Tiempo promedio por tráfico")
-st.pyplot(fig)
+fig = px.bar(
+    traffic_analysis,
+    x="traffic",
+    y="delivery_time",
+    color="traffic",
+    title="Tiempo promedio por tráfico",
+)
 
-st.markdown("---")
+st.plotly_chart(fig, use_container_width=True)
 
 # ==============================
 # 🌧️ CLIMA
@@ -86,41 +134,63 @@ st.markdown("---")
 
 st.subheader("🌧️ Impacto del clima")
 
-weather_analysis = filtered_df.groupby("weather")["delivery_time"].mean()
+weather_analysis = filtered_df.groupby("weather")["delivery_time"].mean().reset_index()
 
-fig, ax = plt.subplots()
-weather_analysis.plot(kind="bar", ax=ax)
-ax.set_title("Tiempo promedio por clima")
-st.pyplot(fig)
+fig = px.bar(
+    weather_analysis,
+    x="weather",
+    y="delivery_time",
+    color="weather",
+    title="Tiempo promedio por clima",
+)
 
-st.markdown("---")
+st.plotly_chart(fig, use_container_width=True)
 
 # ==============================
-# ⚠️ ALERTAS
+# 🔥 HEATMAP (WOW)
 # ==============================
 
-st.subheader("⚠️ Entregas con riesgo")
+st.subheader("🔥 Tráfico + Clima")
 
-st.warning("Pedidos con alto riesgo pueden afectar la satisfacción del cliente y generar cancelaciones")
+pivot = filtered_df.pivot_table(
+    values="delivery_time",
+    index="traffic",
+    columns="weather",
+    aggfunc="mean"
+)
+
+fig = px.imshow(
+    pivot,
+    text_auto=True,
+    aspect="auto",
+    title="Impacto combinado"
+)
+
+st.plotly_chart(fig, use_container_width=True)
+
+# ==============================
+# ⚠️ RIESGO
+# ==============================
+
+st.subheader("⚠️ Riesgo de retraso")
 
 high_risk = filtered_df[filtered_df["delivery_time"] > 40]
 
 risk_percentage = (len(high_risk) / len(filtered_df)) * 100 if len(filtered_df) > 0 else 0
 
-col_risk1, col_risk2 = st.columns(2)
+col1, col2 = st.columns(2)
 
-col_risk1.metric("Pedidos en riesgo", len(high_risk))
-col_risk2.metric("⚠️ % en riesgo", f"{risk_percentage:.1f}%")
+col1.metric("Pedidos en riesgo", len(high_risk))
+col2.metric("% en riesgo", f"{risk_percentage:.1f}%")
 
 st.dataframe(high_risk)
-
-st.markdown("---")
 
 # ==============================
 # 🔮 PREDICCIÓN
 # ==============================
 
-st.subheader("🔮 Simulación de entrega")
+st.markdown("---")
+st.subheader("🔮 Simulación")
 
 distance = st.slider("Distancia (km)", 1.0, 20.0)
 traffic = st.selectbox("Tráfico", ["low", "medium", "high"])
@@ -134,7 +204,6 @@ input_data = pd.DataFrame([{
 
 input_data = pd.get_dummies(input_data)
 
-# 🔥 FIX PRO
 for col in features:
     if col not in input_data.columns:
         input_data[col] = 0
@@ -144,42 +213,37 @@ input_data = input_data[features]
 if st.button("Predecir ETA"):
     prediction = model.predict(input_data)[0]
 
-    st.write(f"⏱️ Tiempo estimado: {prediction:.2f} minutos")
+    st.success(f"⏱️ ETA estimado: {prediction:.2f} minutos")
 
     if prediction > 40:
-        st.error("⚠️ Alto riesgo de retraso")
-    else:
-        st.success("✅ Entrega en tiempo esperado")
+        st.error("⚠️ Riesgo alto")
 
-    # 🔥 WOW MOMENT
     if traffic == "high" and weather != "clear":
-        st.error("🚨 Escenario crítico: alta probabilidad de retraso")
-
-st.markdown("---")
+        st.error("🚨 Escenario crítico")
 
 # ==============================
 # 🧠 INSIGHTS
 # ==============================
 
-st.subheader("🧠 Insights clave")
+st.markdown("---")
+st.subheader("🧠 Insights")
 
 st.write("""
-- El tráfico alto es el principal factor de retraso  
-- El clima adverso incrementa los tiempos  
-- La distancia tiene menor impacto relativo  
-- Los peores escenarios ocurren cuando hay tráfico alto + mal clima  
+- El tráfico impacta más que la distancia  
+- El clima empeora los tiempos  
+- Los peores casos combinan tráfico alto + lluvia  
 """)
 
 # ==============================
-# 📌 RECOMENDACIONES (NIVEL EMPRESA)
+# 📌 RECOMENDACIONES
 # ==============================
 
 st.subheader("📌 Recomendaciones")
 
 st.write("""
-- Aumentar repartidores en zonas con tráfico alto  
-- Ajustar tiempos estimados en días de lluvia  
-- Priorizar pedidos críticos para evitar cancelaciones  
+- Aumentar repartidores en tráfico alto  
+- Ajustar tiempos en lluvia  
+- Priorizar pedidos críticos  
 """)
 
 # ==============================
@@ -189,6 +253,5 @@ st.write("""
 st.subheader("💼 Conclusión")
 
 st.write("""
-El principal factor que afecta los tiempos de entrega es el tráfico, seguido por el clima.
-Optimizar estos factores puede mejorar significativamente la eficiencia operativa.
+Optimizar tráfico y clima puede mejorar significativamente la eficiencia operativa y la experiencia del cliente.
 """)
