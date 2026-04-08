@@ -3,7 +3,6 @@ import pandas as pd
 import joblib
 import plotly.express as px
 import time
-from streamlit_autorefresh import st_autorefresh
 
 # ==============================
 # ⚙️ CONFIG
@@ -15,11 +14,6 @@ st.set_page_config(
     layout="wide"
 )
 
-# ==============================
-# 🔄 AUTO REFRESH (TIEMPO REAL)
-# ==============================
-
-st_autorefresh(interval=15000, key="refresh")
 
 # ==============================
 # 🎨 UI MODERNA (SaaS)
