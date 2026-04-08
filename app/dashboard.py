@@ -2,9 +2,11 @@ import streamlit as st
 import pandas as pd
 import joblib
 import plotly.express as px
+import time
+from streamlit_autorefresh import st_autorefresh
 
 # ==============================
-# 🎨 CONFIG UI
+# ⚙️ CONFIG
 # ==============================
 
 st.set_page_config(
@@ -14,29 +16,39 @@ st.set_page_config(
 )
 
 # ==============================
-# 💅 CSS (SaaS LOOK)
+# 🔄 AUTO REFRESH (TIEMPO REAL)
+# ==============================
+
+st_autorefresh(interval=15000, key="refresh")
+
+# ==============================
+# 🎨 UI MODERNA (SaaS)
 # ==============================
 
 st.markdown("""
 <style>
-body {
+.main {
     background-color: #0e1117;
 }
 
-.metric-card {
-    background-color: #1c1f26;
-    padding: 20px;
-    border-radius: 15px;
-    box-shadow: 0px 4px 20px rgba(0,0,0,0.3);
-    text-align: center;
-}
-
 h1, h2, h3 {
-    color: #ffffff;
+    color: white;
 }
 
+section[data-testid="stMetric"] {
+    background-color: #1c1f26;
+    padding: 15px;
+    border-radius: 10px;
+}
 </style>
 """, unsafe_allow_html=True)
+
+# ==============================
+# ⏳ LOADING
+# ==============================
+
+with st.spinner("Cargando datos..."):
+    time.sleep(1)
 
 # ==============================
 # 📂 DATA
@@ -61,7 +73,7 @@ Monitorea, analiza y predice tiempos de entrega en tiempo real.
 st.markdown("---")
 
 # ==============================
-# 🎛️ SIDEBAR
+# 🎛️ FILTROS
 # ==============================
 
 st.sidebar.title("⚙️ Filtros")
@@ -80,7 +92,7 @@ filtered_df = df[
 ]
 
 # ==============================
-# 📊 KPIs (SaaS STYLE)
+# 📊 KPIs
 # ==============================
 
 avg_time = filtered_df["delivery_time"].mean()
@@ -101,13 +113,7 @@ st.markdown("---")
 
 st.subheader("📊 Distribución de entregas")
 
-fig = px.histogram(
-    filtered_df,
-    x="delivery_time",
-    nbins=20,
-    title="Distribución de tiempos",
-)
-
+fig = px.histogram(filtered_df, x="delivery_time", nbins=20)
 st.plotly_chart(fig, use_container_width=True)
 
 # ==============================
@@ -118,14 +124,7 @@ st.subheader("🚗 Impacto del tráfico")
 
 traffic_analysis = filtered_df.groupby("traffic")["delivery_time"].mean().reset_index()
 
-fig = px.bar(
-    traffic_analysis,
-    x="traffic",
-    y="delivery_time",
-    color="traffic",
-    title="Tiempo promedio por tráfico",
-)
-
+fig = px.bar(traffic_analysis, x="traffic", y="delivery_time", color="traffic")
 st.plotly_chart(fig, use_container_width=True)
 
 # ==============================
@@ -136,18 +135,11 @@ st.subheader("🌧️ Impacto del clima")
 
 weather_analysis = filtered_df.groupby("weather")["delivery_time"].mean().reset_index()
 
-fig = px.bar(
-    weather_analysis,
-    x="weather",
-    y="delivery_time",
-    color="weather",
-    title="Tiempo promedio por clima",
-)
-
+fig = px.bar(weather_analysis, x="weather", y="delivery_time", color="weather")
 st.plotly_chart(fig, use_container_width=True)
 
 # ==============================
-# 🔥 HEATMAP (WOW)
+# 🔥 HEATMAP
 # ==============================
 
 st.subheader("🔥 Tráfico + Clima")
@@ -159,13 +151,7 @@ pivot = filtered_df.pivot_table(
     aggfunc="mean"
 )
 
-fig = px.imshow(
-    pivot,
-    text_auto=True,
-    aspect="auto",
-    title="Impacto combinado"
-)
-
+fig = px.imshow(pivot, text_auto=True)
 st.plotly_chart(fig, use_container_width=True)
 
 # ==============================
@@ -211,12 +197,14 @@ for col in features:
 input_data = input_data[features]
 
 if st.button("Predecir ETA"):
-    prediction = model.predict(input_data)[0]
+    with st.spinner("Calculando..."):
+        time.sleep(1)
+        prediction = model.predict(input_data)[0]
 
-    st.success(f"⏱️ ETA estimado: {prediction:.2f} minutos")
+    st.success(f"⏱️ ETA: {prediction:.2f} minutos")
 
     if prediction > 40:
-        st.error("⚠️ Riesgo alto")
+        st.error("⚠️ Alto riesgo")
 
     if traffic == "high" and weather != "clear":
         st.error("🚨 Escenario crítico")
@@ -229,9 +217,9 @@ st.markdown("---")
 st.subheader("🧠 Insights")
 
 st.write("""
-- El tráfico impacta más que la distancia  
+- El tráfico es el principal factor  
 - El clima empeora los tiempos  
-- Los peores casos combinan tráfico alto + lluvia  
+- La distancia influye menos  
 """)
 
 # ==============================
@@ -244,14 +232,4 @@ st.write("""
 - Aumentar repartidores en tráfico alto  
 - Ajustar tiempos en lluvia  
 - Priorizar pedidos críticos  
-""")
-
-# ==============================
-# 💼 CONCLUSIÓN
-# ==============================
-
-st.subheader("💼 Conclusión")
-
-st.write("""
-Optimizar tráfico y clima puede mejorar significativamente la eficiencia operativa y la experiencia del cliente.
 """)
