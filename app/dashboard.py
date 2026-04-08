@@ -4,12 +4,12 @@ import joblib
 import matplotlib.pyplot as plt
 
 # Cargar data
-df = pd.read_csv("../data/raw/deliveries.csv")
+df = pd.read_csv("data/raw/deliveries.csv")
+
 
 # Cargar modelo y features
-model = joblib.load("../models/eta_model.pkl")
-features = joblib.load("../models/features.pkl")
-
+model = joblib.load("models/eta_model.pkl")
+features = joblib.load("models/features.pkl")
 st.set_page_config(page_title="OpsVision AI Dashboard", layout="wide")
 
 st.title("🚀 OpsVision AI - Dashboard Operativo")
